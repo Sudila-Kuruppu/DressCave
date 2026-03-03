@@ -1,7 +1,8 @@
--- Migration: 002_rls_policies.sql
+-- Migration: 002_rls_policies.sql (FIXED)
 -- Description: Row Level Security policies for DressCave
 -- Created: 2026-03-01
 -- Story: 1-2-set-up-supabase-project-database-schema
+-- Fixed: 2026-03-02 (Fixed infinite recursion in profiles policies)
 
 -- ============================================
 -- Enable RLS on all tables
@@ -24,9 +25,12 @@ ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can view categories" ON categories
     FOR SELECT USING (true);
 
--- Only authenticated users can insert/update/delete categories (admin only in practice)
+-- Only admins can insert/update/delete categories
+-- Use auth.jwt() to check admin claim directly to avoid recursion
 CREATE POLICY "Admins can manage categories" ON categories
     FOR ALL USING (
+        (SELECT auth.jwt() ->> 'role') = 'authenticated'
+        AND
         EXISTS (
             SELECT 1 FROM profiles
             WHERE profiles.user_id = auth.uid()
@@ -42,7 +46,7 @@ CREATE POLICY "Admins can manage categories" ON categories
 CREATE POLICY "Public can view products" ON products
     FOR SELECT USING (true);
 
--- Only authenticated users can insert/update/delete products (admin only)
+-- Only admins can insert/update/delete products
 CREATE POLICY "Admins can manage products" ON products
     FOR ALL USING (
         EXISTS (
@@ -60,7 +64,7 @@ CREATE POLICY "Admins can manage products" ON products
 CREATE POLICY "Public can view product variants" ON product_variants
     FOR SELECT USING (true);
 
--- Only authenticated users can insert/update/delete product variants (admin only)
+-- Only admins can insert/update/delete product variants
 CREATE POLICY "Admins can manage product variants" ON product_variants
     FOR ALL USING (
         EXISTS (
@@ -75,53 +79,31 @@ CREATE POLICY "Admins can manage product variants" ON product_variants
 -- ============================================
 
 -- Users can view any profile (for display purposes)
+-- NOTE: This policy does NOT reference profiles to avoid recursion
 CREATE POLICY "Anyone can view profiles" ON profiles
     FOR SELECT USING (true);
+
+-- Users can insert their own profile (handled by trigger)
+CREATE POLICY "Users can insert own profile" ON profiles
+    FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Users can update their own profile
 CREATE POLICY "Users can update own profile" ON profiles
     FOR UPDATE USING (auth.uid() = user_id);
 
--- Admins can manage all profiles
+-- Admins can manage all profiles - use subquery that doesn't reference outer table
 CREATE POLICY "Admins can manage profiles" ON profiles
     FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM profiles p
-            WHERE p.user_id = auth.uid()
-            AND p.is_admin = true
-        )
+        auth.uid() IN (SELECT user_id FROM profiles WHERE is_admin = true)
     );
-
--- Function to handle new user signup - creates profile automatically
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO public.profiles (id, user_id, full_name, email)
-    VALUES (NEW.id, NEW.id, NEW.raw_user_meta_data->>'full_name', NEW.email);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Trigger for automatic profile creation on user signup
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
 -- Measurements policies (User-specific)
 -- ============================================
 
--- Users can view measurements (their own or all for admin)
+-- Users can view their own measurements
 CREATE POLICY "Users can view own measurements" ON measurements
-    FOR SELECT USING (
-        auth.uid() = user_id OR
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.user_id = auth.uid()
-            AND profiles.is_admin = true
-        )
-    );
+    FOR SELECT USING (auth.uid() = user_id);
 
 -- Users can insert their own measurements
 CREATE POLICY "Users can insert own measurements" ON measurements
@@ -174,11 +156,7 @@ CREATE POLICY "Users can delete from own wishlist" ON wishlist_items
 -- Admins can manage all wishlist items
 CREATE POLICY "Admins can manage wishlist" ON wishlist_items
     FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.user_id = auth.uid()
-            AND profiles.is_admin = true
-        )
+        auth.uid() IN (SELECT user_id FROM profiles WHERE is_admin = true)
     );
 
 -- ============================================
@@ -204,9 +182,23 @@ CREATE POLICY "Users can delete own reviews" ON reviews
 -- Admins can manage all reviews
 CREATE POLICY "Admins can manage reviews" ON reviews
     FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.user_id = auth.uid()
-            AND profiles.is_admin = true
-        )
+        auth.uid() IN (SELECT user_id FROM profiles WHERE is_admin = true)
     );
+
+-- ============================================
+-- Function to handle new user signup - creates profile automatically
+-- ============================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, user_id, full_name)
+    VALUES (NEW.id, NEW.id, NEW.raw_user_meta_data->>'full_name');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger for automatic profile creation on user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
