@@ -196,7 +196,7 @@ describe('ActiveFilterDisplay', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: 'Clear all active filters' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Clear all 1 filter' })).toBeDefined();
     });
 
     it('should call onClearAll when Clear All button is clicked', () => {
@@ -221,7 +221,7 @@ describe('ActiveFilterDisplay', () => {
         />
       );
 
-      const clearAllButton = screen.getByRole('button', { name: 'Clear all active filters' });
+      const clearAllButton = screen.getByRole('button', { name: 'Clear all 1 filter' });
       fireEvent.click(clearAllButton);
 
       expect(mockOnClearAll).toHaveBeenCalled();

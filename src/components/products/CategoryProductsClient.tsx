@@ -53,10 +53,10 @@ export function CategoryProductsClient({
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
-          description: cat.description,
+          description: cat.description || null,
           parent_id: cat.parent_id,
-          image_url: null,
-          display_order: 0,
+          image_url: cat.image_url || null,
+          display_order: cat.display_order || 0,
         }));
         setSubcategoryDetails(mappedCategories);
       }
@@ -206,7 +206,10 @@ export function CategoryProductsClient({
       {/* End of list */}
       {!hasMore && products.length > 0 && (
         <p className="mt-8 text-center text-gray-500">
-          Showing all {totalCount} products
+          {activeSubcategories.length > 0
+            ? `Showing ${products.length} of ${totalCount} filtered products`
+            : `Showing all ${totalCount} products`
+          }
         </p>
       )}
     </div>

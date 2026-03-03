@@ -20,32 +20,57 @@ export function FilterPanel({
     new Set(activeSubcategories)
   );
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch subcategories on mount
   useEffect(() => {
-    async function fetchSubcategories() {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name, slug')
-        .eq('parent_id', categoryId)
-        .eq('is_active', true)
-        .order('name');
+    let isMounted = true;
+    const controller = new AbortController();
 
-      if (!error && data) {
-        const mappedCategories: Category[] = data.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          slug: cat.slug,
-          description: null,
-          parent_id: categoryId,
-          image_url: null,
-          display_order: 0,
-        }));
-        setSubcategories(mappedCategories);
+    async function fetchSubcategories() {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name, slug, description, image_url, display_order')
+          .eq('parent_id', categoryId)
+          .eq('is_active', true)
+          .order('name');
+
+        if (!isMounted || controller.signal.aborted) {
+          return;
+        }
+
+        if (!error && data) {
+          const mappedCategories: Category[] = data.map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+            description: cat.description || null,
+            parent_id: categoryId,
+            image_url: cat.image_url || null,
+            display_order: cat.display_order || 0,
+          }));
+          setSubcategories(mappedCategories);
+        } else if (error && isMounted) {
+          console.error('Error fetching subcategories:', error);
+          setError('Failed to load filters. Please try again.');
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Unexpected error fetching subcategories:', err);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     }
     fetchSubcategories();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [categoryId]);
 
   // Handle filter toggle
@@ -70,6 +95,14 @@ export function FilterPanel({
     return (
       <div className="filter-panel-loading" data-testid="loading-filters">
         Loading filters...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="filter-panel-error p-4 bg-red-50 border border-red-200 rounded-lg" data-testid="filter-error">
+        <p className="text-red-700 text-sm">{error}</p>
       </div>
     );
   }

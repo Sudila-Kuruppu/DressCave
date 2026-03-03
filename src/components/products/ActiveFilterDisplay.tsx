@@ -28,7 +28,7 @@ export function ActiveFilterDisplay({
         <button
           onClick={onClearAll}
           className="clear-all-link text-sm text-[#FF6F61] hover:text-[#e05e52] transition-colors"
-          aria-label="Clear all active filters"
+          aria-label={`Clear all ${filterCount} filter${filterCount !== 1 ? 's' : ''}`}
         >
           Clear All
         </button>

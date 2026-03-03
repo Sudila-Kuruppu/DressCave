@@ -57,11 +57,13 @@ describe('FilterPanel', () => {
   };
 
   describe('Basic rendering', () => {
-    it('should show loading state initially', () => {
+    it('should show loading state initially', async () => {
       setupMock();
       render(<FilterPanel categoryId="cat-1" onFilterChange={vi.fn()} />);
 
-      expect(screen.getByText('Loading filters...')).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByText('Loading filters...')).toBeDefined();
+      });
     });
 
     it('should return null when no subcategories found', async () => {
