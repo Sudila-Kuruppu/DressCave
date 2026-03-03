@@ -28,9 +28,10 @@ export default async function CategoryPage({ params }: Props) {
         <h1 className="mb-8 text-3xl font-bold text-gray-900">
           {category.name}
         </h1>
-        <CategoryProductsClient 
+        <CategoryProductsClient
           initialProducts={products}
           initialCategory={category}
+          categoryId={category.id}
           hasMore={hasMore}
           totalCount={totalCount}
         />

@@ -212,8 +212,125 @@ export async function getProductsByCategoryPaginated({
     display_order: 0,
   };
 
-  return { 
-    products: mappedProducts, 
+  return {
+    products: mappedProducts,
+    category: mappedCategory,
+    hasMore,
+    totalCount
+  };
+}
+
+// Filter options
+export interface ProductsFilterOptions {
+  categorySlug: string;
+  subcategoryIds?: string[];
+  page?: number;
+  limit?: number;
+}
+
+export async function getProductsByCategoryFiltered({
+  categorySlug,
+  subcategoryIds = [],
+  page = 1,
+  limit = 12,
+}: ProductsFilterOptions): Promise<ProductsResult> {
+  const supabase = await createClient();
+
+  // First get the category
+  const { data: category, error: categoryError } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('slug', categorySlug)
+    .single() as { data: CategoriesRow | null; error: Error | null };
+
+  if (categoryError || !category) {
+    console.error('Error fetching category:', categoryError);
+    return { products: [], category: null, hasMore: false, totalCount: 0 };
+  }
+
+  const offset = (page - 1) * limit;
+
+  // Build base query
+  let query = supabase
+    .from('products')
+    .select('*', { count: 'exact', head: true })
+    .eq('category_id', category.id)
+    .eq('is_active', true);
+
+  // Apply subcategory filter if provided
+  if (subcategoryIds.length > 0) {
+    query = query.in('subcategory_id', subcategoryIds);
+  }
+
+  // Get total count
+  const { count } = await query;
+
+  // Build data query
+  query = supabase
+    .from('products')
+    .select('*')
+    .eq('category_id', category.id)
+    .eq('is_active', true);
+
+  if (subcategoryIds.length > 0) {
+    query = query.in('subcategory_id', subcategoryIds);
+  }
+
+  // Get products with pagination
+  const { data: products, error: productsError } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1) as { data: ProductsRow[] | null; error: Error | null };
+
+  if (productsError) {
+    console.error('Error fetching products:', productsError);
+    return {
+      products: [],
+      category: {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        parent_id: category.parent_id,
+        image_url: null,
+        display_order: 0,
+      },
+      hasMore: false,
+      totalCount: count || 0
+    };
+  }
+
+  // Map database row to Product type
+  const mappedProducts: Product[] = (products || []).map(p => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description || '',
+    price: p.price,
+    category_id: p.category_id || '',
+    image_url: null,
+    images: [],
+    is_featured: p.is_featured,
+    is_new_arrival: p.is_new_arrival,
+    stock_quantity: 0,
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  }));
+
+  const totalCount = count || 0;
+  const hasMore = offset + (products?.length || 0) < totalCount;
+
+  const mappedCategory: Category = {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    parent_id: category.parent_id,
+    image_url: null,
+    display_order: 0,
+  };
+
+  return {
+    products: mappedProducts,
     category: mappedCategory,
     hasMore,
     totalCount
