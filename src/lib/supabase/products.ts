@@ -336,3 +336,45 @@ export async function getProductsByCategoryFiltered({
     totalCount
   };
 }
+
+/**
+ * Fetch products marked as new arrivals
+ * Filters by is_new_arrival: true
+ * Orders by created_at DESC (newest first)
+ * Limits to 8 products maximum
+ */
+export async function getNewArrivals(): Promise<Product[]> {
+  const supabase = await createClient();
+
+  // Query for new arrivals - filter by is_new_arrival
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('is_new_arrival', true)
+    .order('created_at', { ascending: false })
+    .limit(8) as { data: ProductsRow[] | null; error: Error | null };
+
+  if (error) {
+    console.error('Error fetching new arrivals:', error);
+    return [];
+  }
+
+  // Map database row to Product type
+  const mappedProducts: Product[] = (data || []).map(p => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description || '',
+    price: p.price,
+    category_id: p.category_id || '',
+    image_url: p.image_url,
+    images: p.images || [],
+    is_featured: p.is_featured,
+    is_new_arrival: p.is_new_arrival,
+    stock_quantity: 0,
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  }));
+
+  return mappedProducts;
+}
