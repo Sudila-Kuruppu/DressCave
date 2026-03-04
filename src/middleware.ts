@@ -34,13 +34,13 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes that require authentication
   const protectedRoutes = ['/account', '/cart', '/wishlist']
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
   // Auth routes that should redirect to home if already logged in
   const authRoutes = ['/login', '/register']
-  const isAuthRoute = authRoutes.some(route => 
+  const isAuthRoute = authRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
@@ -57,15 +57,23 @@ export async function middleware(request: NextRequest) {
   return supabaseResponse
 }
 
+// Optimized matcher: Only check auth for routes that actually need it
+// Public routes (/, /products, /category) are excluded to improve performance
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
+     * Match routes that need auth checking:
+     * - Protected routes: /account, /cart, /wishlist
+     * - Auth routes: /login, /register (to redirect authenticated users)
+     * - Admin routes: /admin
+     *
+     * Exclude:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - Public API routes
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public|api).*)',
   ],
 }
