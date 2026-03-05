@@ -10,7 +10,6 @@ import {
   Input,
   Text,
   Heading,
-  HStack,
   VStack,
   createToaster,
 } from '@chakra-ui/react'
@@ -18,21 +17,20 @@ import { Link } from 'next/navigation'
 
 const toaster = createToaster()
 
-export function RegisterForm() {
+export function LoginForm() {
   // State
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
 
   // Hooks
-  const { signUp } = useAuth()
+  const { signIn } = useAuth()
   const router = useRouter()
 
   // Validation
   const isEmailValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const isPasswordMatch = password === confirmPassword
+  const isRequired = (value: string) => value.trim().length > 0
 
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,37 +39,37 @@ export function RegisterForm() {
     setIsLoading(true)
 
     // Client-side validation
+    if (!isRequired(email)) {
+      setErrors({ email: 'Email is required' })
+      setIsLoading(false)
+      return
+    }
+
     if (!isEmailValid(email)) {
       setErrors({ email: 'Invalid email format' })
       setIsLoading(false)
       return
     }
 
-    if (password.length < 6) {
-      setErrors({ password: 'Password must be at least 6 characters' })
+    if (!isRequired(password)) {
+      setErrors({ password: 'Password is required' })
       setIsLoading(false)
       return
     }
 
-    if (!isPasswordMatch) {
-      setErrors({ confirmPassword: 'Passwords do not match' })
-      setIsLoading(false)
-      return
-    }
-
-    // Supabase signup
-    const { error } = await signUp({ email, password })
+    // Supabase login
+    const { error } = await signIn({ email, password })
 
     if (error) {
-      setErrors({ submit: error.message })
+      setErrors({ submit: error.message || 'Invalid email or password' })
       setIsLoading(false)
       return
     }
 
     // Success
     toaster.success({
-      title: 'Account created!',
-      description: 'Welcome to DressCave',
+      title: 'Welcome back!',
+      description: 'Logged in successfully',
       duration: 3000,
     })
 
@@ -82,9 +80,9 @@ export function RegisterForm() {
   return (
     <Box w="full" maxW="400px">
       <VStack spacing={6}>
-        <Heading size="2xl" textAlign="center">Create Account</Heading>
+        <Heading size="lg" textAlign="center">Welcome Back</Heading>
         <Text textAlign="center" color="gray.600">
-          Join DressCave for personalized shopping
+          Login to access your account
         </Text>
 
         <form onSubmit={handleSubmit}>
@@ -109,23 +107,10 @@ export function RegisterForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 6 characters"
+                placeholder="Enter your password"
                 aria-invalid={!!errors.password}
               />
               {errors.password && <Field.ErrorText>{errors.password}</Field.ErrorText>}
-            </Field.Root>
-
-            <Field.Root required invalid={!!errors.confirmPassword}>
-              <Field.Label htmlFor="confirmPassword">Confirm Password</Field.Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                aria-invalid={!!errors.confirmPassword}
-              />
-              {errors.confirmPassword && <Field.ErrorText>{errors.confirmPassword}</Field.ErrorText>}
             </Field.Root>
 
             {errors.submit && (
@@ -138,22 +123,22 @@ export function RegisterForm() {
               color="white"
               size="lg"
               loading={isLoading}
-              loadingText="Creating account..."
+              loadingText="Logging in..."
               w="full"
               _hover={{ bg: '#E86355' }}
               _focusVisible={{ outline: '2px solid #4FA1A0' }}
             >
-              Register
+              Login
             </Button>
           </VStack>
         </form>
 
-        <HStack justifyContent="center" fontSize="sm">
-          <Text>Already have an account?{' '}</Text>
-          <Link href="/login" color="#4FA1A0" fontWeight="bold">
-            Sign In
+        <Text textAlign="center" fontSize="sm">
+          Don't have an account?{' '}
+          <Link href="/register" color="#4FA1A0" fontWeight="bold">
+            Sign Up
           </Link>
-        </HStack>
+        </Text>
       </VStack>
     </Box>
   )
