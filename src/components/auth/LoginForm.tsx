@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Box,
@@ -13,9 +14,8 @@ import {
   VStack,
   createToaster,
 } from '@chakra-ui/react'
-import { Link } from 'next/navigation'
 
-const toaster = createToaster()
+const toaster = createToaster({})
 
 export function LoginForm() {
   // State
@@ -79,14 +79,14 @@ export function LoginForm() {
 
   return (
     <Box w="full" maxW="400px">
-      <VStack spacing={6}>
+      <VStack spacing="6">
         <Heading size="lg" textAlign="center">Welcome Back</Heading>
         <Text textAlign="center" color="gray.600">
           Login to access your account
         </Text>
 
         <form onSubmit={handleSubmit}>
-          <VStack spacing={4}>
+          <VStack spacing="4">
             <Field.Root required invalid={!!errors.email}>
               <Field.Label htmlFor="email">Email</Field.Label>
               <Input
