@@ -79,14 +79,14 @@ export function LoginForm() {
 
   return (
     <Box w="full" maxW="400px">
-      <VStack spacing="6">
+      <VStack gap="6">
         <Heading size="lg" textAlign="center">Welcome Back</Heading>
         <Text textAlign="center" color="gray.600">
           Login to access your account
         </Text>
 
         <form onSubmit={handleSubmit}>
-          <VStack spacing="4">
+          <VStack gap="4">
             <Field.Root required invalid={!!errors.email}>
               <Field.Label htmlFor="email">Email</Field.Label>
               <Input
@@ -113,6 +113,10 @@ export function LoginForm() {
               {errors.password && <Field.ErrorText>{errors.password}</Field.ErrorText>}
             </Field.Root>
 
+            <Link href="/reset-password" className="text-[#4FA1A0] text-sm font-bold hover:underline">
+              Forgot Password?
+            </Link>
+
             {errors.submit && (
               <Text color="red.500" fontSize="sm">{errors.submit}</Text>
             )}
@@ -135,7 +139,7 @@ export function LoginForm() {
 
         <Text textAlign="center" fontSize="sm">
           Don't have an account?{' '}
-          <Link href="/register" color="#4FA1A0" fontWeight="bold">
+          <Link href="/register" className="text-[#4FA1A0] font-bold">
             Sign Up
           </Link>
         </Text>

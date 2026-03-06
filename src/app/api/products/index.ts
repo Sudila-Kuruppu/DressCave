@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       .from('categories')
       .select('id, name')
       .eq('slug', categorySlug)
-      .single();
+      .single() as { data: { id: string; name: string } | null; error: any };
 
     if (categoryError || !category) {
       return NextResponse.json(
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         .from('categories')
         .select('id, name')
         .in('id', subcategoryIds)
-        .eq('parent_id', category.id);
+        .eq('parent_id', category.id) as { data: Array<{ id: string; name: string }> | null; error: any };
 
       if (subcategoryError) {
         return NextResponse.json(

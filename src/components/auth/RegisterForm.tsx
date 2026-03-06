@@ -81,14 +81,14 @@ export function RegisterForm() {
 
   return (
     <Box w="full" maxW="400px">
-      <VStack spacing="6">
+      <VStack gap="6">
         <Heading size="2xl" textAlign="center">Create Account</Heading>
         <Text textAlign="center" color="gray.600">
           Join DressCave for personalized shopping
         </Text>
 
         <form onSubmit={handleSubmit}>
-          <VStack spacing="4">
+          <VStack gap="4">
             <Field.Root required invalid={!!errors.email}>
               <Field.Label htmlFor="email">Email</Field.Label>
               <Input
@@ -150,7 +150,7 @@ export function RegisterForm() {
 
         <HStack justifyContent="center" fontSize="sm">
           <Text>Already have an account?{' '}</Text>
-          <Link href="/login" color="#4FA1A0" fontWeight="bold">
+          <Link href="/login" className="text-[#4FA1A0] font-bold">
             Sign In
           </Link>
         </HStack>

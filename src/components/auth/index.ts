@@ -1,3 +1,7 @@
-export { LoginPrompt } from './LoginPrompt'
+export { default as LoginPrompt } from './LoginPrompt'
 export { RegisterForm } from './RegisterForm'
 export { LoginForm } from './LoginForm'
+export { PasswordResetRequestForm } from './PasswordResetRequestForm'
+export { UpdatePasswordForm } from './UpdatePasswordForm'
+export { MeasurementForm } from './MeasurementForm'
+export { ProfileForm } from './ProfileForm'
